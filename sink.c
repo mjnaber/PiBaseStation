@@ -5,25 +5,16 @@
 #include <wiringPi.h>
 #include <curl/curl.h>
 #include <errno.h>
- 
-main()
+
+int tty_fd;
+
+int open_moteino(void)
 {
 struct termios tio;
-int n = 0;
-int i = 0;
-int pos = 0;
-int total = 0;
-char buf[1];
-CURL *curl;
-CURLcode res;
-time_t result = time(NULL); 
-char webbuf [4096];
-char finalbuf [4096];
-curl = curl_easy_init();
 
    // Open the device
    //int tty_fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
-   int tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
+   tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
    
    // Check if the port didn't open correctly
    if (tty_fd==-1)
@@ -46,6 +37,22 @@ curl = curl_easy_init();
    cfmakeraw(&tio);
    tcflush(tty_fd, TCIFLUSH);
    tcsetattr(tty_fd, TCSANOW, &tio);
+
+}
+ 
+main()
+{
+int n = 0;
+int i = 0;
+int pos = 0;
+int total = 0;
+char buf[1];
+CURL *curl;
+CURLcode res;
+time_t result = time(NULL); 
+char webbuf [4096];
+char finalbuf [4096];
+curl = curl_easy_init();
 
  for (i = 0; i < sizeof(finalbuf); i++)
  {
