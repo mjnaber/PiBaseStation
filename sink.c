@@ -69,79 +69,83 @@ convertToXML(time_t timestamp, char* buffer)
 	sprintf(intermedbuf, "<sensor_reading>\n");
 	strcat(buffer, intermedbuf);
 	ivalue = atoi(ptr);
-	sprintf(intermedbuf, "\t<nodeID> %d <\nodeID>\n", ivalue)
+	sprintf(intermedbuf, "\t<nodeID> %d </\nodeID>\n", ivalue)
 	strcat(buffer, intermedbuf);
 	sprintf(intermedbuf, "\t<top>\n")
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Height> 1000mm <\Height>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Height> 1000mm </\Height>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t\t<Temperature> %f <\Temperature>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Temperature> %f </\Temperature>\n", fvalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Humidity> %f <\Humidity>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Humidity> %f </\Humidity>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t<\top>\n")
+	sprintf(intermedbuf, "\t</\top>\n")
 	strcat(buffer, intermedbuf);
 	sprintf(intermedbuf, "\t<middle>\n")
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Height> 200mm <\Height>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Height> 200mm </\Height>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t\t<Temperature> %f <\Temperature>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Temperature> %f </\Temperature>\n", fvalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Humidity> %f <\Humidity>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Humidity> %f </\Humidity>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t<\middle>\n")
+	sprintf(intermedbuf, "\t</\middle>\n")
 	strcat(buffer, intermedbuf);
 	sprintf(intermedbuf, "\t<bottom>\n")
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Height> 0mm <\Height>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Height> 0mm </\Height>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t\t<Temperature> %f <\Temperature>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Temperature> %f </\Temperature>\n", fvalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Humidity> %f <\Humidity>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Humidity> %f </\Humidity>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t<\bottom>\n")
+	sprintf(intermedbuf, "\t</\bottom>\n")
 	strcat(buffer, intermedbuf);
 	sprintf(intermedbuf, "\t<ground>\n")
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Height> -50mm <\Height>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Height> -50mm </\Height>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t\t<Temperature> %f <\Temperature>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Temperature> %f </\Temperature>\n", fvalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	fvalue = atof(ptr);
-	sprintf(intermedbuf, "\t\t<Humidity> %f <\Humidity>\n", fvalue)
+	sprintf(intermedbuf, "\t\t<Humidity> %f </\Humidity>\n", fvalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t<\ground>\n")
+	sprintf(intermedbuf, "\t</\ground>\n")
 	strcat(buffer, intermedbuf);
 	sprintf(intermedbuf, "\t<light>\n")
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	ivalue = atoi(ptr);
-	sprintf(intermedbuf, "\t\t<Red> %d <\Red>\n", ivalue)
+	sprintf(intermedbuf, "\t\t<Red> %d </\Red>\n", ivalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	ivalue = atoi(ptr);
-	sprintf(intermedbuf, "\t\t<Green> %d <\Green>\n", ivalue)
+	sprintf(intermedbuf, "\t\t<Green> %d </\Green>\n", ivalue)
 	strcat(buffer, intermedbuf);
 	while (' ' != ptr++);
 	ivalue = atoi(ptr);
-	sprintf(intermedbuf, "\t\t<Blue> %d <\Blue>\n", ivalue)
+	sprintf(intermedbuf, "\t\t<Blue> %d </\Blue>\n", ivalue)
 	strcat(buffer, intermedbuf);
-	sprintf(intermedbuf, "\t<\light>\n")
+	sprintf(intermedbuf, "\t</\light>\n")
+	strcat(buffer, intermedbuf);
+	while (' ' != ptr++);
+	fvalue = atof(ptr);
+	sprintf(intermedbuf, "\t<Voltage> %f </\Voltage>\n", fvalue)
 	strcat(buffer, intermedbuf);
 	
 }
