@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <wiringPi.h>
+//#include <wiringPi.h>
 #include <curl/curl.h>
 #include <errno.h>
 #include <stdio.h>
@@ -10,6 +10,7 @@
 #include <libxml/xmlwriter.h>
 
 #define MY_ENCODING "ISO-8859-1"
+#define MAXQUEUE 1048576
 
 int tty_fd;
 
@@ -59,6 +60,7 @@ main()
 	time_t result = time(NULL); 
 	char webbuf [4096];
 	char finalbuf [4096];
+	char queued [MAXQUEUE];// [1048576]; // Allocate 1M of RAM for buffering failed transmission attempts until network allows CURL to succeed
 	curl = curl_easy_init();
 
 	int rc;
@@ -124,42 +126,42 @@ main()
 			 * element, this will be the root element of the document. */
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "data_point");
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "node_ID", "%d", atoi(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "message_type", "%d", atoi(ptr));
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "one_metre");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "twenty_centimetres");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "ground_level");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "soil");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "soil_moisture", "%05.2f", atof(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "light");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "R", "%d", atoi(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "G", "%d", atoi(ptr));
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "B", "%d", atoi(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "battery");
-			while(' ' != *ptr++);
+			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "voltage", "%05.2f", atof(ptr));
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterEndElement(writer);
@@ -169,8 +171,30 @@ main()
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, finalbuf);
 			printf(finalbuf);
 
+			/* Try to resend any queued data from previous failed attempts */
+			if (strlen(queued) > 9)
+			{
+				res = curl_easy_perform(curl);
+				if (0 == res)
+				{
+					queued[0] = 0;
+				}
+			}
+
 			/* Perform the request, res will get the return code */
 			res = curl_easy_perform(curl); // TODO deal with error here!!!
+
+			int endptr = strlen(queued);
+
+			if (0 != res) 
+			{
+				for (i = 0; ((i < sizeof(finalbuf)) && ((endptr + i) < MAXQUEUE)); i++)
+				{
+					queued[endptr + i] = finalbuf[i];
+					// add contents of finalbuf to large backup buffer and go around again
+				}
+			}
+wipe:
 			total = 0;
 			for (i = 0; i < sizeof(finalbuf); i++)
 			{
