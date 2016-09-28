@@ -79,25 +79,24 @@ int main()
 		webbuf[i] = 0;
 	}
 
+	FILE *curllog = fopen("curllog.txt", "a"); // Both log files will need to be on the SD card, NOT the RAM disk
+	FILE *xmllog = fopen("xmllog.txt", "a");   // Should probably be passed in on the command line
+
 	curl = curl_easy_init();
-	FILE *f = fopen("curllog.txt", "a");
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, curllog);
 	curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/zambiatestdata.php");
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20); // Timeout CURL after 20 seconds (plenty of time for the network to respond)
-	//curl_easy_setopt(curl, CURLOPT_NOBODY, 1); // Hide output from CURL
 
 	while (1)
 	{
-		/* Create a new XML buffer, to which the XML document will be
-		 * written */
+		/* Create a new XML buffer*/
 		buf = xmlBufferCreate();
 		if (buf == NULL) {
 			printf("Error creating the xml buffer\n");
 			return -1;
 		}
 
-		/* Create a new XmlWriter for memory, with no compression.
-		 * Remark: there is no compression for this kind of xmlTextWriter */
+		/* Create a new XmlWriter */ 
 		writer = xmlNewTextWriterMemory(buf, 0);
 		if (writer == NULL) {
 			printf("Error creating the xml writer\n");
@@ -105,8 +104,7 @@ int main()
 		}
 
 		/* Start the document with the xml default for the version,
-		 * encoding ISO 8859-1 and the default for the standalone
-		 * declaration. */
+		 * encoding ISO 8859-1 */
 		rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
 		if (rc < 0) {
 			printf
@@ -131,7 +129,6 @@ int main()
 		{
 			result = time(NULL); 
 			sprintf(finalbuf, "data= %s %s", asctime(gmtime(&result)), webbuf);
-			//rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
 
 			/* Start an element named "EXAMPLE". Since thist is the first
 			 * element, this will be the root element of the document. */
@@ -193,6 +190,8 @@ int main()
 					queued[0] = 0;
 				}
 			}
+
+			fprintf(xmllog, "%s", buf->content); 			// Write XML to the log file
 
 			/* Specify the POST data */
 			sprintf(finalbuf, "data=%s", buf->content);
