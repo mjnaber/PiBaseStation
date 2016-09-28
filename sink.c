@@ -1,8 +1,9 @@
 #include <termios.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-//#include <wiringPi.h>
+#include <time.h>
 #include <curl/curl.h>
 #include <errno.h>
 #include <stdio.h>
@@ -19,8 +20,8 @@ int open_moteino(void)
 	struct termios tio;
 
 	// Open the device
-	//int tty_fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
-	tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
+	tty_fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
+	//tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
 
 	// Check if the port didn't open correctly
 	if (tty_fd==-1)
@@ -47,7 +48,7 @@ int open_moteino(void)
 	return 0;
 }
 
-main()
+int main()
 {
 	int n = 0;
 	int i = 0;
@@ -60,7 +61,7 @@ main()
 	time_t result = time(NULL); 
 	char webbuf [4096];
 	char finalbuf [4096];
-	char queued [MAXQUEUE];// [1048576]; // Allocate 1M of RAM for buffering failed transmission attempts until network allows CURL to succeed
+	char queued [MAXQUEUE]; // Allocate 1M of RAM for buffering failed transmission attempts until network allows CURL to succeed
 	curl = curl_easy_init();
 
 	int rc;
@@ -80,30 +81,39 @@ main()
 	}
 
 	curl = curl_easy_init();
-	curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/recorddata.php");
-
-	/* Create a new XML buffer, to which the XML document will be
-	 * written */
-	buf = xmlBufferCreate();
-	if (buf == NULL) {
-		printf("testXmlwriterMemory: Error creating the xml buffer\n");
-		return -1;
-	}
-
-	writer = xmlNewTextWriterMemory(buf, 0);
-	if (writer == NULL) {
-		printf("testXmlwriterMemory: Error creating the xml writer\n");
-		return -1;
-	}
-
-	/* Start the document with the xml default for the version,
-	 * encoding ISO 8859-1 and the default for the standalone
-	 * declaration. */
-	xmlTextWriterSetIndent(writer, 1);
-
+	curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/zambiatestdata.php");
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20); // Timeout CURL after 20 seconds (plenty of time for the network to respond)
+	curl_easy_setopt(curl, CURLOPT_NOBODY, 1); // Hide output from CURL
 
 	while (1)
 	{
+		/* Create a new XML buffer, to which the XML document will be
+		 * written */
+		buf = xmlBufferCreate();
+		if (buf == NULL) {
+			printf("Error creating the xml buffer\n");
+			return -1;
+		}
+
+		/* Create a new XmlWriter for memory, with no compression.
+		 * Remark: there is no compression for this kind of xmlTextWriter */
+		writer = xmlNewTextWriterMemory(buf, 0);
+		if (writer == NULL) {
+			printf("Error creating the xml writer\n");
+			return -1;
+		}
+
+		/* Start the document with the xml default for the version,
+		 * encoding ISO 8859-1 and the default for the standalone
+		 * declaration. */
+		rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
+		if (rc < 0) {
+			printf
+				("Error at xmlTextWriterStartDocument\n");
+			return -1;
+		}
+
+		xmlTextWriterSetIndent(writer, 1);
 		while(cbuf[0] != '\n')
 		{
 			n = read (tty_fd, cbuf, 1); 
@@ -120,14 +130,15 @@ main()
 		{
 			result = time(NULL); 
 			sprintf(finalbuf, "data= %s %s", asctime(gmtime(&result)), webbuf);
-			rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
+			//rc = xmlTextWriterStartDocument(writer, NULL, MY_ENCODING, NULL);
 
 			/* Start an element named "EXAMPLE". Since thist is the first
 			 * element, this will be the root element of the document. */
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "data_point");
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "node_ID", "%d", atoi(ptr));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "message_type", "%d", atoi(ptr));
+			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "timestamp", "%s", (const char*) ctime(&result));
+			//ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+			//rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "message_type", "%d", atoi(ptr));
 			rc += xmlTextWriterStartElement(writer, BAD_CAST "one_metre");
 			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
 			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr));
@@ -167,34 +178,47 @@ main()
 			rc += xmlTextWriterEndElement(writer);
 			rc += xmlTextWriterEndDocument(writer);
 
-			/* Now specify the POST data */
-			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, finalbuf);
-			printf(finalbuf);
-
-			/* Try to resend any queued data from previous failed attempts */
+			/* Try to resend any queued data from previous failed attempts before sending new data */
 			if (strlen(queued) > 9)
 			{
+				/* Specify the POST data */
+				sprintf(finalbuf, "data=%s", queued);
+				curl_easy_setopt(curl, CURLOPT_POSTFIELDS, finalbuf);
+
 				res = curl_easy_perform(curl);
 				if (0 == res)
 				{
+					printf("Successfully cleared queue\n");
 					queued[0] = 0;
 				}
 			}
 
+			/* Specify the POST data */
+			sprintf(finalbuf, "data=%s", buf->content);
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, finalbuf);
+
 			/* Perform the request, res will get the return code */
-			res = curl_easy_perform(curl); // TODO deal with error here!!!
+			res = curl_easy_perform(curl);
 
 			int endptr = strlen(queued);
 
-			if (0 != res) 
+			if (0 != res) // If curl fails then queue data 
 			{
+				printf("Queuing Data...\n");
 				for (i = 0; ((i < sizeof(finalbuf)) && ((endptr + i) < MAXQUEUE)); i++)
 				{
 					queued[endptr + i] = finalbuf[i];
 					// add contents of finalbuf to large backup buffer and go around again
 				}
 			}
+			else
+			{
+				printf("Sent packet via CURL\n");
+			}
 wipe:
+			xmlFreeTextWriter(writer);
+			xmlBufferFree(buf);
+
 			total = 0;
 			for (i = 0; i < sizeof(finalbuf); i++)
 			{
