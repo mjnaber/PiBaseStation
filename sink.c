@@ -20,8 +20,8 @@ int open_moteino(void)
 	struct termios tio;
 
 	// Open the device
-	tty_fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
-	//tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
+	//tty_fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
+	tty_fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
 
 	// Check if the port didn't open correctly
 	if (tty_fd==-1)
@@ -79,8 +79,8 @@ int main()
 		webbuf[i] = 0;
 	}
 
-	FILE *curllog = fopen("curllog.txt", "a"); // Both log files will need to be on the SD card, NOT the RAM disk
-	FILE *xmllog = fopen("xmllog.txt", "a");   // Should probably be passed in on the command line
+	FILE *curllog = fopen("/SD/curllog.txt", "a"); // Both log files will need to be on the SD card, NOT the RAM disk
+	FILE *xmllog = fopen("/SD/xmllog.txt", "a");   // Should probably be passed in on the command line
 
 	curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, curllog);
