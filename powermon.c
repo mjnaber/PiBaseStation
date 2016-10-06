@@ -6,7 +6,7 @@
 #include <curl/curl.h>
 #include <errno.h>
 
-main()
+int main()
 {
  int status = 0;
  char i2cbuf[3];
@@ -57,7 +57,7 @@ main()
 printf(webbuf);
 if(curl) {
     curl = curl_easy_init();
-    curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/record.php");
+    curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/zambiapower.php");
     /* First set the URL that is about to receive our POST. This URL can
        just as well be a https:// URL if that is what should receive the
        data. */
@@ -67,5 +67,5 @@ if(curl) {
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
  }
-
+return res;
 }

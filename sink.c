@@ -59,8 +59,8 @@ int main()
 	CURL *curl;
 	CURLcode res;
 	time_t result = time(NULL); 
-	char webbuf [4096];
-	char finalbuf [4096];
+	char webbuf [MAXQUEUE];
+	char finalbuf [MAXQUEUE];
 	char queued [MAXQUEUE]; // Allocate 1M of RAM for buffering failed transmission attempts until network allows CURL to succeed
 
 	int rc;
