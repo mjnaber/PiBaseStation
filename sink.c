@@ -48,6 +48,27 @@ int open_moteino(void)
 	return 0;
 }
 
+int check_event(char* buff)
+{
+	float t1, t2, t3, t4, h1, h2, h3, h4;
+	int ID;
+
+	sscanf (buff, "%d %f %f %f %f %f %f %f %f", &ID, &t1, &h1, &t2, &h2, &t3, &h3, &t4, &h4);
+
+	if ((t1 == 99.0) && (h1 == 99.0) &&
+			(t2 == 99.0) && (h2 == 99.0) &&
+			(t3 == 99.0) && (h3 == 99.0) &&
+			(t4 == 99.0) && (h4 == 99.0))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+
+}
+
 int main()
 {
 	int n = 0;
@@ -84,7 +105,7 @@ int main()
 
 	curl = curl_easy_init();
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, curllog);
-	curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/zambiatestdata.php");
+	curl_easy_setopt(curl, CURLOPT_URL, "http://users.aber.ac.uk/mjn/zambiadatabase1.php");
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20); // Timeout CURL after 20 seconds (plenty of time for the network to respond)
 
 	while (1)
@@ -130,51 +151,82 @@ int main()
 			result = time(NULL); 
 			sprintf(finalbuf, "data= %s %s", asctime(gmtime(&result)), webbuf);
 
-			/* Start an element named "EXAMPLE". Since thist is the first
-			 * element, this will be the root element of the document. */
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "data_point");
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "node_ID", "%d", atoi(ptr));
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "timestamp", "%s", (const char*) ctime(&result));
-			//ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			//rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "message_type", "%d", atoi(ptr++));
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "one_metre");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 						// advance to next space (used as a separator)
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++)); 	// post-increment ptr to make sure we move to
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 						// next separator and give up if we don't
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));	// find another space (corrupt string)
-			rc += xmlTextWriterEndElement(writer);								// keep going through all the entries...
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "twenty_centimetres");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "ground_level");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "soil");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "soil_moisture", "%05.2f", atof(ptr++));
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "light");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "R", "%d", atoi(ptr++));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "G", "%d", atoi(ptr++));
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "B", "%d", atoi(ptr++));
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterStartElement(writer, BAD_CAST "battery");
-			ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
-			rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "voltage", "%05.2f", atof(ptr++));
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterEndElement(writer);
-			rc += xmlTextWriterEndDocument(writer);
+			if (!check_event(webbuf)) // Normal data packet
+			{
+				/* Start an element. Since thist is the first
+				 * element, this will be the root element of the document. */
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "data_point");
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "node_ID", "%d", atoi(ptr));
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "timestamp", "%s", (const char*) ctime(&result));
+				//ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				//rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "message_type", "%d", atoi(ptr++));
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "one_metre");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 						// advance to next space (used as a separator)
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++)); 	// post-increment ptr to make sure we move to
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 						// next separator and give up if we don't
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));	// find another space (corrupt string)
+				rc += xmlTextWriterEndElement(writer);								// keep going through all the entries...
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "twenty_centimetres");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "ground_level");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "humidity", "%05.2f", atof(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "soil");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "temperature", "%05.2f", atof(ptr++));
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "soil_moisture", "%05.2f", atof(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "light");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "R", "%d", atoi(ptr++));
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "G", "%d", atoi(ptr++));
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "B", "%d", atoi(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "battery");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "voltage", "%05.2f", atof(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "signal_strength");
+				ptr = strchr(ptr, ' '); if (ptr == NULL) goto wipe; 
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "RSSI", "%d", atoi(ptr++));
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterEndDocument(writer);
+			}
+			else // This is a packet from a node reporting an event (events are calculated on the node and encoded as below)
+			{
+	float t1, t2, t3, t4, h1, h2, h3, h4, v;
+	int ID, r, g, b, rssi;
+
+	sscanf (webbuf, "%d %f %f %f %f %f %f %f %f %d %d %d %f %d", &ID, &t1, &h1, &t2, &h2, &t3, &h3, &t4, &h4, &r, &g, &b, &v, &rssi);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "event");
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "node_ID", "%d", atoi(ptr));
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "timestamp", "%s", (const char*) ctime(&result));
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "event_type");
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "type", "%d", r);
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "param1", "%d", g);
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "param2", "%d", b);
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "battery");
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "voltage", "%05.2f", v);
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterStartElement(writer, BAD_CAST "signal_strength");
+				rc += xmlTextWriterWriteFormatElement(writer, BAD_CAST "RSSI", "%d", rssi);
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterEndElement(writer);
+				rc += xmlTextWriterEndDocument(writer);
+
+			}
 
 			/* Try to resend any queued data from previous failed attempts before sending new data */
 			if (strlen(queued) > 9)
